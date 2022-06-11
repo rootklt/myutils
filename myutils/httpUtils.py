@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-#coding:utf-8
+# coding:utf-8
 
-import logging
-import traceback
 import requests
 import xmltodict
-from requests.adapters import HTTPAdapter,Retry
+from requests.adapters import HTTPAdapter, Retry
 from functools import wraps
+from myutils.loggerUtils import Logger
+
+
+logger = Logger('httpUtils')
 
 
 def exceptions(func):
@@ -19,10 +21,9 @@ def exceptions(func):
         try:
             response = func(*args, **kwargs)
         except TimeoutError:
-            logging.warning('[-]请求超时')
+            logger.warning('[-]请求超时')
         except Exception as e:
-            traceback(e)
-            logging.warning(f'[-]出错=>{e}')
+            logger.error(f'[-]出错=>{e}')
         finally:
             return response
     return do_except
@@ -31,21 +32,24 @@ def exceptions(func):
 class HTTPRequest(object):
     session = requests.Session()
     response = requests.Response()
+
     def __init__(self):
         pass
-        #self.set_read_count(1)
+        # self.set_read_count(1)
 
     def set_read_count(self, count):
         '''
         设置重读次数，避免在多线程或多进程中由于"Connection: close"而造成读超时，需要在请求发起之前设置
         :param: count: int 重读次数
         '''
-        self.session.mount('http://', HTTPAdapter(max_retries = Retry(read = count, allowed_methods = ['POST', 'GET'])))
-        self.session.mount('https://', HTTPAdapter(max_retries = Retry(read = count, allowed_methods = ['POST', 'GET'])))
-    
+        self.session.mount(
+            'http://', HTTPAdapter(max_retries=Retry(read=count, allowed_methods=['POST', 'GET'])))
+        self.session.mount(
+            'https://', HTTPAdapter(max_retries=Retry(read=count, allowed_methods=['POST', 'GET'])))
+
     @classmethod
     @exceptions
-    def post(cls, *args, **kwargs) ->requests.Response:
+    def post(cls, *args, **kwargs) -> requests.Response:
         '''
         POST请求，参数与requests中参数一致
         '''
@@ -89,12 +93,12 @@ class HTTPRequest(object):
 
     @classmethod
     @exceptions
-    def get_json(cls) ->dict:
+    def get_json(cls) -> dict:
         '''
         响应为json格式时，获取dict类型的内容
         '''
         return cls.response.json()
-    
+
     @classmethod
     @exceptions
     def get_xml(cls) -> dict:
@@ -102,12 +106,12 @@ class HTTPRequest(object):
         响应为xml格式时，将xm转换成dict类型的内容
         '''
         return xmltodict.parse(cls.response.content)
-    
+
     @classmethod
     @exceptions
     def get_content(cls) -> bytes:
         return cls.response.content
-    
+
     @classmethod
     @exceptions
     def get_text(cls) -> str:
@@ -115,19 +119,19 @@ class HTTPRequest(object):
 
     @classmethod
     @exceptions
-    def get_header(cls) -> dict:
+    def get_header(cls):
         return cls.response.headers
-    
+
     @classmethod
     @exceptions
     def get_code(cls):
         return cls.response.status_code
 
+
 session = HTTPRequest()
 if __name__ == '__main__':
-    
+
     url = 'http://www.baidu.com'
     resp = session.get(url)
     header = session.get_header()
     print(header)
-    
